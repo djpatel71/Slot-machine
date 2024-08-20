@@ -1,0 +1,153 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class SlotMachine
+{
+    static List<string>[] reelSet = new List<string>[]
+    {
+        new List<string> { "sym2", "sym7", "sym7", "sym1", "sym1", "sym5", "sym1", "sym4", "sym5", "sym3", "sym2", "sym3", "sym8", "sym4", "sym5", "sym2", "sym8", "sym5", "sym7", "sym2" },
+        new List<string> { "sym1", "sym6", "sym7", "sym6", "sym5", "sym5", "sym8", "sym5", "sym5", "sym4", "sym7", "sym2", "sym5", "sym7", "sym1", "sym5", "sym6", "sym8", "sym7", "sym6", "sym3", "sym3", "sym6", "sym7", "sym3" },
+        new List<string> { "sym5", "sym2", "sym7", "sym8", "sym3", "sym2", "sym6", "sym2", "sym2", "sym5", "sym3", "sym5", "sym1", "sym6", "sym3", "sym2", "sym4", "sym1", "sym6", "sym8", "sym6", "sym3", "sym4", "sym4", "sym8", "sym1", "sym7", "sym6", "sym1", "sym6" },
+        new List<string> { "sym2", "sym6", "sym3", "sym6", "sym8", "sym8", "sym3", "sym6", "sym8", "sym1", "sym5", "sym1", "sym6", "sym3", "sym6", "sym7", "sym2", "sym5", "sym3", "sym6", "sym8", "sym4", "sym1", "sym5", "sym7" },
+        new List<string> { "sym7", "sym8", "sym2", "sym3", "sym4", "sym1", "sym3", "sym2", "sym2", "sym4", "sym4", "sym2", "sym6", "sym4", "sym1", "sym6", "sym1", "sym6", "sym4", "sym8" }
+    };
+
+    static Dictionary<string, int[]> paytable = new Dictionary<string, int[]>
+    {
+        { "sym1", new int[] { 1, 2, 3 } },
+        { "sym2", new int[] { 1, 2, 3 } },
+        { "sym3", new int[] { 1, 2, 5 } },
+        { "sym4", new int[] { 2, 5, 10 } },
+        { "sym5", new int[] { 5, 10, 15 } },
+        { "sym6", new int[] { 5, 10, 15 } },
+        { "sym7", new int[] { 5, 10, 20 } },
+        { "sym8", new int[] { 10, 20, 50 } }
+    };
+
+    static void Main()
+    {
+        try
+        {
+            int[] stopPositions = SpinReels();
+            string[,] screen = GetScreen(stopPositions);
+
+            DisplayScreen(stopPositions, screen);
+
+            int totalWins = CalculateWinnings(screen, out List<string> winningDetails);
+
+            DisplayWinnings(totalWins, winningDetails);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    static int[] SpinReels()
+    {
+        var random = new Random();
+        int[] stopPositions = new int[5];
+
+        for (int i = 0; i < 5; i++)
+        {
+            stopPositions[i] = random.Next(reelSet[i].Count);
+        }
+
+        return stopPositions;
+    }
+
+    static string[,] GetScreen(int[] stopPositions)
+    {
+        string[,] screen = new string[3, 5];
+
+        for (int i = 0; i < 5; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                int index = (stopPositions[i] + j) % reelSet[i].Count;
+                screen[j, i] = reelSet[i][index];
+            }
+        }
+
+        return screen;
+    }
+
+    static void DisplayScreen(int[] stopPositions, string[,] screen)
+    {
+        Console.WriteLine("Stop Positions: " + string.Join(", ", stopPositions));
+        Console.WriteLine("Screen:");
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 5; j++)
+            {
+                Console.Write(screen[i, j] + " ");
+            }
+            Console.WriteLine();
+        }
+    }
+
+    static int CalculateWinnings(string[,] screen, out List<string> winningDetails)
+    {
+        int totalWins = 0;
+        winningDetails = new List<string>();
+
+        foreach (var symbol in paytable.Keys)
+        {
+            var winningPositions = GetWinningPositions(screen, symbol);
+            foreach (var positions in winningPositions)
+            {
+                int count = positions.Length;
+                if (count >= 3)
+                {
+                    int payout = paytable[symbol][count - 3];
+                    totalWins += payout;
+                    string winDetail = $"- Ways win {string.Join("-", positions)}, {symbol} x{count}, {payout}";
+                    winningDetails.Add(winDetail);
+                }
+            }
+        }
+
+        return totalWins;
+    }
+
+    static List<int[]> GetWinningPositions(string[,] screen, string symbol)
+    {
+        var winningPositions = new List<int[]>();
+
+        for (int row = 0; row < 3; row++)
+        {
+            var positions = new List<int>();
+            for (int col = 0; col < 5; col++)
+            {
+                if (screen[row, col] == symbol)
+                {
+                    positions.Add(row * 5 + col);
+                }
+                else
+                {
+                    if (positions.Count >= 3)
+                    {
+                        winningPositions.Add(positions.ToArray());
+                    }
+                    positions.Clear();
+                }
+            }
+            if (positions.Count >= 3)
+            {
+                winningPositions.Add(positions.ToArray());
+            }
+        }
+
+        return winningPositions;
+    }
+
+    static void DisplayWinnings(int totalWins, List<string> winningDetails)
+    {
+        Console.WriteLine($"Total wins: {totalWins}");
+        foreach (var detail in winningDetails)
+        {
+            Console.WriteLine(detail);
+        }
+    }
+}
